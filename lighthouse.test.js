@@ -2,24 +2,21 @@ const lighthouse = require('lighthouse')
 const chromeLauncher = require('chrome-launcher')
 const Table = require('cli-table')
 const net = require('net')
-const Promise = require('bluebird')
 
 const checkConnection = (host, port, timeout = 10000) => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      // eslint-disable-next-line prefer-promise-reject-errors
-      reject('timeout')
-      // eslint-disable-next-line no-use-before-define
       socket.end()
+      return reject('timeout')
     }, timeout)
     const socket = net.createConnection(port, host, () => {
       clearTimeout(timer)
-      resolve(true)
       socket.end()
+      return resolve(true)
     })
     socket.on('error', err => {
       clearTimeout(timer)
-      reject(err)
+      return reject(err)
     })
   })
 }

@@ -1,29 +1,30 @@
 const lighthouse = require('lighthouse')
 const chromeLauncher = require('chrome-launcher')
 const Table = require('cli-table')
-var net = require('net')
-var Promise = require('bluebird')
+const net = require('net')
+const Promise = require('bluebird')
 
-function checkConnection(host, port, timeout) {
-  return new Promise(function(resolve, reject) {
-    timeout = timeout || 10000 // default of 10 seconds
-    var timer = setTimeout(function() {
+const checkConnection = (host, port, timeout = 10000) => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      // eslint-disable-next-line prefer-promise-reject-errors
       reject('timeout')
+      // eslint-disable-next-line no-use-before-define
       socket.end()
     }, timeout)
-    var socket = net.createConnection(port, host, function() {
+    const socket = net.createConnection(port, host, () => {
       clearTimeout(timer)
-      resolve()
+      resolve(true)
       socket.end()
     })
-    socket.on('error', function(err) {
+    socket.on('error', err => {
       clearTimeout(timer)
       reject(err)
     })
   })
 }
 
-let table = new Table()
+const table = new Table()
 
 const output = scores => {
   Object.keys(scores).forEach(category => {
@@ -44,26 +45,26 @@ function launchChromeAndRunLighthouse(url, opts = {}, config = null) {
 }
 
 test('performance audit', async () => {
-  checkConnection('localhost', 9000)
-    .then(() => {})
-    .catch(err => {
-      console.warn(
-        'Performance not tested due to server not being available',
-        err
-      )
-      return
-    })
-  const { lhr } = await launchChromeAndRunLighthouse('http://localhost:9000')
+  const serverIsAlive = await checkConnection('localhost', 9000).catch(err => {
+    console.warn(
+      'Performance not tested due to server not being available',
+      err
+    )
+  })
+  if (serverIsAlive) {
+    const { lhr } = await launchChromeAndRunLighthouse('http://localhost:9000')
 
-  const scores = Object.keys(lhr.categories).reduce((merged, category) => {
-    merged[category] = lhr.categories[category].score
-    return merged
-  }, {})
+    const scores = Object.keys(lhr.categories).reduce((merged, category) => {
+      merged[category] = lhr.categories[category].score
+      return merged
+    }, {})
 
-  console.log(output(scores))
+    console.log(output(scores))
 
-  expect(scores.performance).toBe(1)
-  expect(scores.accessibility).toBe(1)
-  expect(scores['best-practices']).toBeGreaterThanOrEqual(0.93)
-  expect(scores.seo).toBe(1)
-}, 20000)
+    expect(scores.performance).toBe(1)
+    expect(scores.accessibility).toBe(1)
+    expect(scores['best-practices']).toBeGreaterThanOrEqual(0.93)
+    expect(scores.seo).toBe(1)
+  }
+  return
+}, 30000)
